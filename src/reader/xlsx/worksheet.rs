@@ -75,7 +75,7 @@ pub(crate) fn read(
                     stylesheet,
                     &mut formula_shared_list,
                     false,
-                );
+                )?;
                 worksheet.set_row_dimension(obj);
             }
             b"autoFilter" => {

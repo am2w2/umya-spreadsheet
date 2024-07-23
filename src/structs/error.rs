@@ -67,6 +67,9 @@ pub enum XlsxError {
     Uft8(std::string::FromUtf8Error),
     /// Cell error
     CellError(String),
+
+    /// Index from coordinate error
+    IndexFromCoordinateError,
 }
 
 from_err!(std::io::Error, XlsxError, Io);
@@ -83,6 +86,7 @@ impl fmt::Display for XlsxError {
             Zip(s) => write!(f, "ZipError: {}", s),
             Uft8(s) => write!(f, "Uft8Error: {}", s),
             CellError(e) => write!(f, "Unsupported cell error value '{e}'"),
+            IndexFromCoordinateError => write!(f, "index from coordinate"),
         }
     }
 }

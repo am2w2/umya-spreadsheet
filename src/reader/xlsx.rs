@@ -118,9 +118,9 @@ pub(crate) fn raw_to_deserialize_by_worksheet(
     worksheet: &mut Worksheet,
     shared_string_table: Arc<RwLock<SharedStringTable>>,
     stylesheet: &Stylesheet,
-) {
+) -> Result<(), XlsxError> {
     if worksheet.is_deserialized() {
-        return;
+        return Ok(());
     }
 
     let raw_data_of_worksheet = worksheet.get_raw_data_of_worksheet().clone();
@@ -130,8 +130,7 @@ pub(crate) fn raw_to_deserialize_by_worksheet(
         &raw_data_of_worksheet,
         shared_string_table,
         stylesheet,
-    )
-    .unwrap();
+    )?;
 
     if let Some(v) = raw_data_of_worksheet.get_worksheet_relationships() {
         for relationship in v.get_relationship_list() {
@@ -142,16 +141,15 @@ pub(crate) fn raw_to_deserialize_by_worksheet(
                         worksheet,
                         relationship.get_raw_file(),
                         raw_data_of_worksheet.get_drawing_relationships(),
-                    )
-                    .unwrap();
+                    )?;
                 }
                 // comment
                 COMMENTS_NS => {
-                    comment::read(worksheet, relationship.get_raw_file()).unwrap();
+                    comment::read(worksheet, relationship.get_raw_file())?;
                 }
                 // table
                 TABLE_NS => {
-                    table::read(worksheet, relationship.get_raw_file()).unwrap();
+                    table::read(worksheet, relationship.get_raw_file())?;
                 }
                 _ => {}
             }
@@ -163,11 +161,12 @@ pub(crate) fn raw_to_deserialize_by_worksheet(
                     worksheet,
                     relationship.get_raw_file(),
                     raw_data_of_worksheet.get_vml_drawing_relationships(),
-                )
-                .unwrap();
+                )?;
             }
         }
     }
 
     worksheet.remove_raw_data_of_worksheet();
+
+    Ok(())
 }

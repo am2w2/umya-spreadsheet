@@ -25,6 +25,8 @@ use traits::AdjustmentCoordinate;
 use traits::AdjustmentCoordinateWith2Sheet;
 use writer::driver::*;
 
+use crate::XlsxError;
+
 #[derive(Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct Cell {
     coordinate: Coordinate,
@@ -274,7 +276,7 @@ impl Cell {
         stylesheet: &Stylesheet,
         empty_flag: bool,
         formula_shared_list: &mut HashMap<u32, (String, Vec<FormulaToken>)>,
-    ) {
+    ) -> Result<(), XlsxError> {
         let mut type_value: String = String::from("");
         let mut cell_reference: String = String::from("");
 
@@ -295,7 +297,7 @@ impl Cell {
         set_string_from_xml!(self, e, cell_meta_index, "cm");
 
         if empty_flag {
-            return;
+            return Ok(());
         }
 
         let mut string_value: String = String::from("");
@@ -323,7 +325,7 @@ impl Cell {
                 Ok(Event::Empty(ref e)) => {
                     if e.name().into_inner() == b"f" {
                         let mut obj = CellFormula::default();
-                        obj.set_attributes(reader, e, true, &cell_reference, formula_shared_list);
+                        obj.set_attributes(reader, e, true, &cell_reference, formula_shared_list)?;
                         self.cell_value.set_formula_obj(obj);
                     }
                 }
@@ -357,7 +359,7 @@ impl Cell {
                             self.set_value_crate(&string_value);
                         }
                     }
-                    b"c" => return,
+                    b"c" => return Ok(()),
                     b"t" => {
                         reader.config_mut().trim_text(true);
                     }
@@ -369,6 +371,8 @@ impl Cell {
             }
             buf.clear();
         }
+
+        Ok(())
     }
 
     pub(crate) fn write_to(

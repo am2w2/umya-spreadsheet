@@ -5,6 +5,8 @@ use helper::coordinate::*;
 use helper::range::*;
 use structs::StringValue;
 
+use crate::XlsxError;
+
 /** PARTLY BASED ON: */
 /** Copyright (c) 2007 E. W. Bachtal, Inc. */
 /** https://ewbi.blogs.com/develops/2007/03/excel_formula_p.html */
@@ -780,7 +782,7 @@ pub fn adjustment_insert_formula_coordinate(
     worksheet_name: &str,
     self_worksheet_name: &str,
     ignore_worksheet: bool,
-) -> String {
+) -> Result<String, XlsxError> {
     for token in token_list.into_iter() {
         if token.get_token_type() == &FormulaTokenTypes::Operand
             && token.get_token_sub_type() == &FormulaTokenSubTypes::Range
@@ -794,10 +796,10 @@ pub fn adjustment_insert_formula_coordinate(
                 let coordinate_list = get_split_range(range);
                 for coordinate in &coordinate_list {
                     let cell = index_from_coordinate(coordinate);
-                    let mut col_num = cell.0.unwrap();
-                    let mut row_num = cell.1.unwrap();
-                    let is_lock_col = cell.2.unwrap();
-                    let is_lock_row = cell.3.unwrap();
+                    let mut col_num = cell.0.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let mut row_num = cell.1.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let is_lock_col = cell.2.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let is_lock_row = cell.3.ok_or(XlsxError::IndexFromCoordinateError)?;
                     if !is_lock_col {
                         col_num =
                             adjustment_insert_coordinate(&col_num, root_col_num, offset_col_num);
@@ -819,7 +821,8 @@ pub fn adjustment_insert_formula_coordinate(
             }
         }
     }
-    render(token_list.as_ref())
+
+    Ok(render(token_list.as_ref()))
 }
 
 pub fn adjustment_remove_formula_coordinate(
@@ -831,7 +834,7 @@ pub fn adjustment_remove_formula_coordinate(
     worksheet_name: &str,
     self_worksheet_name: &str,
     ignore_worksheet: bool,
-) -> String {
+) -> Result<String, XlsxError> {
     for token in token_list.into_iter() {
         if token.get_token_type() == &FormulaTokenTypes::Operand
             && token.get_token_sub_type() == &FormulaTokenSubTypes::Range
@@ -845,10 +848,10 @@ pub fn adjustment_remove_formula_coordinate(
                 let coordinate_list = get_split_range(range);
                 for coordinate in &coordinate_list {
                     let cell = index_from_coordinate(coordinate);
-                    let mut col_num = cell.0.unwrap();
-                    let mut row_num = cell.1.unwrap();
-                    let is_lock_col = cell.2.unwrap();
-                    let is_lock_row = cell.3.unwrap();
+                    let mut col_num = cell.0.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let mut row_num = cell.1.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let is_lock_col = cell.2.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let is_lock_row = cell.3.ok_or(XlsxError::IndexFromCoordinateError)?;
                     if !is_lock_col {
                         col_num =
                             adjustment_remove_coordinate(&col_num, root_col_num, offset_col_num);
@@ -870,7 +873,7 @@ pub fn adjustment_remove_formula_coordinate(
             }
         }
     }
-    render(token_list.as_ref())
+    Ok(render(token_list.as_ref()))
 }
 
 #[cfg(test)]

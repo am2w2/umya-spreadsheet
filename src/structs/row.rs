@@ -1,3 +1,5 @@
+use crate::XlsxError;
+
 use super::BooleanValue;
 use super::Cell;
 use super::Cells;
@@ -105,7 +107,7 @@ impl Row {
         stylesheet: &Stylesheet,
         formula_shared_list: &mut HashMap<u32, (String, Vec<FormulaToken>)>,
         empty_flag: bool,
-    ) {
+    ) -> Result<(), XlsxError> {
         set_string_from_xml!(self, e, row_num, "r");
         set_string_from_xml!(self, e, height, "ht");
         set_string_from_xml!(self, e, thick_bot, "thickBot");
@@ -124,7 +126,7 @@ impl Row {
         }
 
         if empty_flag {
-            return;
+            return Ok(());
         }
 
         xml_read_loop!(
@@ -139,17 +141,19 @@ impl Row {
             Event::Start(ref e) => {
                 if e.name().into_inner() == b"c" {
                     let mut obj = Cell::default();
-                    obj.set_attributes(reader, e, shared_string_table, stylesheet, false, formula_shared_list);
+                    obj.set_attributes(reader, e, shared_string_table, stylesheet, false, formula_shared_list)?;
                     cells.set_fast(obj);
                 }
             },
             Event::End(ref e) => {
                 if e.name().into_inner() == b"row" {
-                    return
+                    return  Ok(());
                 }
             },
             Event::Eof => panic!("Error: Could not find {} end element", "row")
         );
+
+        Ok(())
     }
 
     pub(crate) fn write_to(

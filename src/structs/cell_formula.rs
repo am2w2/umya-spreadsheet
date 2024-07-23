@@ -15,6 +15,8 @@ use structs::UInt32Value;
 use traits::AdjustmentCoordinateWith2Sheet;
 use writer::driver::*;
 
+use crate::XlsxError;
+
 #[derive(Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct CellFormula {
     bx: BooleanValue,
@@ -144,7 +146,7 @@ impl CellFormula {
         is_empty: bool,
         cell_reference_str: &str,
         formula_shared_list: &mut HashMap<u32, (String, Vec<FormulaToken>)>,
-    ) {
+    ) -> Result<(), XlsxError> {
         set_string_from_xml!(self, e, bx, "bx");
         set_string_from_xml!(self, e, data_table_2d, "dt2D");
         set_string_from_xml!(self, e, data_table_row, "dtr");
@@ -177,10 +179,12 @@ impl CellFormula {
                 Some((parent_cell_reference_str, token)) => {
                     let parent_cell = index_from_coordinate(parent_cell_reference_str);
                     let self_cell = index_from_coordinate(cell_reference_str);
-                    let parent_col_num = parent_cell.0.unwrap();
-                    let parent_row_num = parent_cell.1.unwrap();
-                    let self_col_num = self_cell.0.unwrap();
-                    let self_row_num = self_cell.1.unwrap();
+                    let parent_col_num =
+                        parent_cell.0.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let parent_row_num =
+                        parent_cell.1.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let self_col_num = self_cell.0.ok_or(XlsxError::IndexFromCoordinateError)?;
+                    let self_row_num = self_cell.1.ok_or(XlsxError::IndexFromCoordinateError)?;
 
                     let root_col_num = parent_col_num;
                     let root_row_num = parent_row_num;
@@ -197,7 +201,7 @@ impl CellFormula {
                         "",
                         "",
                         true,
-                    );
+                    )?;
                     self.text_view.set_value(value);
                 }
                 None => {
@@ -211,6 +215,8 @@ impl CellFormula {
                 }
             }
         }
+
+        Ok(())
     }
 
     pub(crate) fn write_to(
@@ -301,7 +307,7 @@ impl AdjustmentCoordinateWith2Sheet for CellFormula {
         offset_row_num: &u32,
     ) {
         if let Some(v) = self.text.get_value() {
-            let formula = adjustment_insert_formula_coordinate(
+            if let Ok(formula) = adjustment_insert_formula_coordinate(
                 &mut parse_to_tokens(v),
                 root_col_num,
                 offset_col_num,
@@ -310,8 +316,9 @@ impl AdjustmentCoordinateWith2Sheet for CellFormula {
                 sheet_name,
                 self_sheet_name,
                 false,
-            );
-            self.text.set_value(format!("={}", formula));
+            ) {
+                self.text.set_value(format!("={}", formula));
+            }
         }
     }
 
@@ -325,7 +332,7 @@ impl AdjustmentCoordinateWith2Sheet for CellFormula {
         offset_row_num: &u32,
     ) {
         if let Some(v) = self.text.get_value() {
-            let formula = adjustment_remove_formula_coordinate(
+            if let Ok(formula) = adjustment_remove_formula_coordinate(
                 &mut parse_to_tokens(v),
                 root_col_num,
                 offset_col_num,
@@ -334,8 +341,9 @@ impl AdjustmentCoordinateWith2Sheet for CellFormula {
                 sheet_name,
                 self_sheet_name,
                 false,
-            );
-            self.text.set_value(format!("={}", formula));
+            ) {
+                self.text.set_value(format!("={}", formula));
+            }
         }
     }
 }
